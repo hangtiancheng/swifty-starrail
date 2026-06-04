@@ -1,0 +1,39 @@
+appId: com.github.hangtiancheng.lark-star-rail
+productName: 星穹工具箱
+directories:
+  buildResources: build
+files:
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+asarUnpack:
+  - resources/**
+win:
+  executableName: lark-star-rail
+  icon: build/favicon.ico
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  icon: build/icon.icns
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  target:
+    - dmg
+    - zip
+dmg:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: github
+  owner: hangtiancheng
+  repo: lark-star-rail
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
