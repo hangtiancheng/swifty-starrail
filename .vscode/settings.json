@@ -1,0 +1,31 @@
+{
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "cSpell.words": [
+    "authkey",
+    "cognosphere",
+    "gacha",
+    "hangtiancheng",
+    "HKCU",
+    "hkrpg",
+    "hoyolab",
+    "hoyoverse",
+    "lightningcss",
+    "mihoyo",
+    "overscan",
+    "retcode",
+    "rpgcultivate",
+    "srgf",
+    "uids",
+    "uigf",
+    "unbreak",
+    "unmaximize"
+  ]
+}
