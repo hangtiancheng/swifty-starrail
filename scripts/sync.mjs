@@ -22,16 +22,22 @@ import {
   readdirSync,
   statSync,
 } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { tmpdir } from "os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+/** @type {string} Project root, one level above this script's directory. */
+const ROOT_DIR = resolve(__dirname, "..");
+
 const REPO_URL = "https://github.com/Natrium0521/Firefly";
+/** @type {string} Temporary directory holding the shallow clone. */
 const CLONE_DIR = join(tmpdir(), "firefly-sync-" + Date.now());
 
-const STATIC_JSON_DEST = join(__dirname, "src/static/json");
-const ASSETS_IMAGE_DEST = join(__dirname, "src/renderer/src/assets/image/hsr");
+/** @type {string} Game data JSON files in this project. */
+const STATIC_JSON_DEST = join(ROOT_DIR, "src/static/json");
+/** @type {string} HSR image assets in this project. */
+const ASSETS_IMAGE_DEST = join(ROOT_DIR, "src/renderer/src/assets/image/hsr");
 
 function main() {
   console.log("Cloning Firefly repository (shallow)...");

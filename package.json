@@ -30,7 +30,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@swifty.js/sentry": "file:../swifty-sentry/sentry",
+    "@swifty.js/sentry": "latest",
     "@tanstack/react-virtual": "^3.14.2",
     "builder-util-runtime": "^9.7.0",
     "electron-updater": "^6.8.3",
