@@ -105,31 +105,29 @@ export function useAchievementMeta() {
         const rarity = rarityMap[(item["Rarity"] as string) ?? "Low"];
 
         items.push({
-          achievement_id: `${item["AchievementID"]}`,
-          achievement_version: (item["AchievementVersion"] as string) ?? "",
-          achievement_title: title,
-          achievement_desc_upper: desc.includes("※")
-            ? desc.split("※")[0]
-            : desc,
-          achievement_desc_lower: desc.includes("※")
+          achievementId: `${item["AchievementID"]}`,
+          achievementVersion: (item["AchievementVersion"] as string) ?? "",
+          achievementTitle: title,
+          achievementDescUpper: desc.includes("※") ? desc.split("※")[0] : desc,
+          achievementDescLower: desc.includes("※")
             ? "※" + desc.replace(/^.*?※/, "")
             : "",
-          achievement_show_type:
+          achievementShowType:
             item["ShowType"] === "ShowAfterFinish" ? "Hidden" : "",
-          achievement_reward: rarity.reward,
-          achievement_priority: (item["Priority"] as number) ?? 0,
-          achievement_icon:
+          achievementReward: rarity.reward,
+          achievementPriority: (item["Priority"] as number) ?? 0,
+          achievementIcon:
             (seriesInfo?.["IconPath"] as string)
               ?.split("/")
               .at(-1)
               ?.replace("_s.png", `${rarity.icon}`) ?? "",
-          series_id: item["SeriesID"] as number,
-          series_priority: (seriesInfo?.["Priority"] as number) ?? 0,
-          achievement_status: 1,
-          achievement_is_disabled: false,
-          achievement_finish_date: "",
-          achievement_finish_time: "",
-          achievement_mutual_exclusive_info: meMap[`${item["AchievementID"]}`]
+          seriesId: item["SeriesID"] as number,
+          seriesPriority: (seriesInfo?.["Priority"] as number) ?? 0,
+          achievementStatus: 1,
+          achievementIsDisabled: false,
+          achievementFinishDate: "",
+          achievementFinishTime: "",
+          achievementMutualExclusiveInfo: meMap[`${item["AchievementID"]}`]
             ? "Mutually exclusive achievements:\n" +
               meMap[`${item["AchievementID"]}`]
                 .map(
@@ -169,29 +167,29 @@ export function useAchievementMeta() {
 
       const series: SeriesItem[] = [
         {
-          series_id: 0,
-          series_title: "All Achievements",
-          series_icon: "Prize",
-          series_priority: 999,
-          count_total: totalFix,
-          count_finished: 0,
+          seriesId: 0,
+          seriesTitle: "All Achievements",
+          seriesIcon: "Prize",
+          seriesPriority: 999,
+          countTotal: totalFix,
+          countFinished: 0,
         },
       ];
       for (const s of Object.values(achievementSeries)) {
         series.push({
-          series_id: s["SeriesID"] as number,
-          series_title: getText(
+          seriesId: s["SeriesID"] as number,
+          seriesTitle: getText(
             (s["SeriesTitle"] as Record<string, string>)["Hash"],
           ),
-          series_icon:
+          seriesIcon:
             (s["MainIconPath"] as string)?.split("/").at(-1)?.split(".")[0] ??
             "",
-          series_priority: (s["Priority"] as number) ?? 0,
-          count_total: seriesCount[s["SeriesID"] as number]?.fix ?? 0,
-          count_finished: 0,
+          seriesPriority: (s["Priority"] as number) ?? 0,
+          countTotal: seriesCount[s["SeriesID"] as number]?.fix ?? 0,
+          countFinished: 0,
         });
       }
-      series.sort((a, b) => b.series_priority - a.series_priority);
+      series.sort((a, b) => b.seriesPriority - a.seriesPriority);
       setSeriesItems(series);
     };
 

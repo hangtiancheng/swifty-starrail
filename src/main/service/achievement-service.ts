@@ -1,9 +1,11 @@
 import { app, BrowserWindow, dialog } from "electron";
 import { join, dirname } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { readFile, writeFile, rename } from "fs/promises";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { readFile, rename, writeFile } from "fs/promises";
 import { configService } from "./config-service";
 import { settingService } from "./setting-service";
+import { dataStore } from "./store";
+import type { AchievementRecord } from "./data-store";
 import type { IpcResult } from "../../shared/ipc-schema";
 
 const serverConfigs: Record<
@@ -26,40 +28,15 @@ const serverConfigs: Record<
 };
 
 class AchievementService {
-  private dataPath: string;
-  private uidsPath: string;
-  private uids: Record<string, string>;
+  private readonly dataDir: string;
   private mysBrowserWindow: BrowserWindow | null = null;
 
   constructor() {
-    this.dataPath = join(configService.getAppDataPath(), "achievement");
-    if (!existsSync(this.dataPath)) mkdirSync(this.dataPath);
-    this.uidsPath = join(this.dataPath, "uids.json");
-    if (!existsSync(this.uidsPath)) {
-      writeFileSync(
-        this.uidsPath,
-        JSON.stringify({ "000000000": "Trailblazer" }, null, 2),
-        "utf-8",
-      );
-      writeFileSync(
-        join(this.dataPath, "000000000.json"),
-        JSON.stringify({}, null, 2),
-        "utf-8",
-      );
+    this.dataDir = join(configService.getAppDataPath(), "achievement");
+    dataStore.migrateLegacyJson("achievement", this.dataDir);
+    if (dataStore.countUids("achievement") === 0) {
+      dataStore.upsertUid("achievement", "000000000", "Trailblazer");
     }
-    this.uids = JSON.parse(readFileSync(this.uidsPath, "utf-8"));
-  }
-
-  private async saveUids(): Promise<void> {
-    this.uids = Object.keys(this.uids)
-      .sort()
-      .reduce<Record<string, string>>((acc, key) => {
-        acc[key] = this.uids[key];
-        return acc;
-      }, {});
-    const tmp = join(dirname(this.uidsPath), ".uids.tmp");
-    await writeFile(tmp, JSON.stringify(this.uids, null, 2), "utf-8");
-    await rename(tmp, this.uidsPath);
   }
 
   private async loadStaticJson(name: string): Promise<unknown> {
@@ -87,7 +64,7 @@ class AchievementService {
     list: Array<{ finished: boolean; id: string }>,
   ): Promise<IpcResult<string>> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) {
+    if (!dataStore.hasUid("achievement", uid)) {
       await this.newData(uid, "Trailblazer");
     }
     await settingService.set("LastAchievementUid", uid);
@@ -99,28 +76,23 @@ class AchievementService {
       .filter((a) => a.finished && metaIds.has(a.id))
       .map((a) => a.id);
 
-    const oldData = JSON.parse(
-      await readFile(join(this.dataPath, `${uid}.json`), "utf-8"),
-    );
-    const newData: Record<string, unknown> = {};
+    const existing = dataStore.getAchievements(uid);
     const now = Math.floor(Date.now() / 1000);
-    for (const id of finishedIds) {
-      newData[id] = oldData[id] ?? {
-        id,
-        timestamp: now,
-        current: 0,
-        status: 2,
-      };
-    }
-    const filePath = join(this.dataPath, `${uid}.json`);
-    const tmpPath = join(this.dataPath, `.${uid}.tmp`);
-    await writeFile(tmpPath, JSON.stringify(newData, null, 2), "utf-8");
-    await rename(tmpPath, filePath);
+    const records: AchievementRecord[] = finishedIds.map(
+      (id) =>
+        existing[id] ?? {
+          id,
+          timestamp: now,
+          current: 0,
+          status: 2,
+        },
+    );
+    dataStore.replaceAchievements(uid, records);
     return { msg: "OK", data: uid };
   }
 
   async getUids(): Promise<IpcResult<Record<string, string>>> {
-    return { msg: "OK", data: this.uids };
+    return { msg: "OK", data: dataStore.listUids("achievement") };
   }
 
   async getData(
@@ -128,33 +100,28 @@ class AchievementService {
     changeLastUid = false,
   ): Promise<IpcResult<Record<string, unknown>>> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
+    if (!dataStore.hasUid("achievement", uid)) {
+      return { msg: "UID does not exist" };
+    }
     if (changeLastUid) await settingService.set("LastAchievementUid", uid);
-    const raw = await readFile(join(this.dataPath, `${uid}.json`), "utf-8");
-    return { msg: "OK", data: JSON.parse(raw) };
+    return { msg: "OK", data: dataStore.getAchievements(uid) };
   }
 
   async newData(uid: string, nickname: string): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) {
-      await writeFile(
-        join(this.dataPath, `${uid}.json`),
-        JSON.stringify({}, null, 2),
-        "utf-8",
-      );
-    }
-    this.uids[uid] = nickname;
-    await this.saveUids();
+    dataStore.upsertUid("achievement", uid, nickname);
     return { msg: "OK", data: undefined };
   }
 
   async delData(uid: string): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
-    if (Object.keys(this.uids).length === 1)
+    if (!dataStore.hasUid("achievement", uid)) {
+      return { msg: "UID does not exist" };
+    }
+    if (dataStore.countUids("achievement") === 1) {
       return { msg: "Cannot delete the last UID" };
-    delete this.uids[uid];
-    await this.saveUids();
+    }
+    dataStore.deleteUid("achievement", uid);
     return { msg: "OK", data: undefined };
   }
 
@@ -163,17 +130,18 @@ class AchievementService {
     type: string,
   ): Promise<IpcResult<{ path: string }>> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
+    if (!dataStore.hasUid("achievement", uid)) {
+      return { msg: "UID does not exist" };
+    }
     if (type !== "swifty-starrail") return { msg: "Unknown export format" };
 
-    const raw = await readFile(join(this.dataPath, `${uid}.json`), "utf-8");
     const exportData = {
       info: {
         export_app: "swifty-starrail",
         export_app_version: app.getVersion(),
         export_timestamp: Math.floor(Date.now() / 1000),
       },
-      list: Object.values(JSON.parse(raw)),
+      list: Object.values(dataStore.getAchievements(uid)),
     };
 
     const result = await dialog.showSaveDialog(
@@ -183,7 +151,7 @@ class AchievementService {
         buttonLabel: "Export",
         defaultPath: join(
           app.getPath("desktop"),
-          `swifty-starrail-achievement-export-v${app.getVersion()}-${this.uids[uid]}-${uid}.json`,
+          `swifty-starrail-achievement-export-v${app.getVersion()}-${dataStore.listUids("achievement")[uid]}-${uid}.json`,
         ),
         filters: [{ name: "json", extensions: ["json"] }],
       },
@@ -200,6 +168,9 @@ class AchievementService {
 
   async importData(uid: string, type: string): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
+    if (!dataStore.hasUid("achievement", uid)) {
+      return { msg: "UID does not exist" };
+    }
     if (type !== "swifty-starrail") return { msg: "Unknown import format" };
 
     const result = await dialog.showOpenDialog(
@@ -221,21 +192,18 @@ class AchievementService {
     }
     if (!importData?.list) return { msg: "No data" };
 
-    const list: Record<string, unknown> = {};
+    const records: AchievementRecord[] = [];
     const now = Math.floor(Date.now() / 1000);
     for (const e of importData.list) {
       if (isNaN(e.id) || isNaN(e.status)) return { msg: "Invalid data format" };
-      list[e.id] = {
-        id: e.id,
+      records.push({
+        id: `${e.id}`,
         timestamp: e.timestamp ?? now,
         current: e.current ?? 0,
         status: e.status,
-      };
+      });
     }
-    const filePath = join(this.dataPath, `${uid}.json`);
-    const tmpPath = join(this.dataPath, `.${uid}.tmp`);
-    await writeFile(tmpPath, JSON.stringify(list, null, 2), "utf-8");
-    await rename(tmpPath, filePath);
+    dataStore.replaceAchievements(uid, records);
     return { msg: "OK", data: undefined };
   }
 
@@ -245,22 +213,19 @@ class AchievementService {
     status: number,
   ): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
+    if (!dataStore.hasUid("achievement", uid)) {
+      return { msg: "UID does not exist" };
+    }
 
-    const raw = await readFile(join(this.dataPath, `${uid}.json`), "utf-8");
-    const data = JSON.parse(raw);
     if (status === 1) {
-      for (const id of ids) delete data[id];
+      dataStore.deleteAchievements(uid, ids);
     } else {
       const ts = Math.floor(Date.now() / 1000);
-      for (const id of ids) {
-        data[id] = { id, timestamp: ts, current: 0, status };
-      }
+      dataStore.upsertAchievements(
+        uid,
+        ids.map((id) => ({ id, timestamp: ts, current: 0, status })),
+      );
     }
-    const filePath = join(this.dataPath, `${uid}.json`);
-    const tmpPath = join(this.dataPath, `.${uid}.tmp`);
-    await writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
-    await rename(tmpPath, filePath);
     return { msg: "OK", data: undefined };
   }
 
@@ -345,5 +310,61 @@ class AchievementService {
     this.mysBrowserWindow = null;
   }
 }
+
+// ---------------------------------------------------------------------
+// @deprecated Legacy JSON storage implementation, kept for reference after
+// the node:sqlite migration (data-store.ts). Do not use in new code; the
+// one-time data import happens via dataStore.migrateLegacyJson().
+// ---------------------------------------------------------------------
+
+const legacyDataDir = join(configService.getAppDataPath(), "achievement");
+const legacyUidsPath = join(legacyDataDir, "uids.json");
+
+/** @deprecated Legacy JSON storage, superseded by node:sqlite. */
+export const legacyAchievementJsonStorage = {
+  init(): Record<string, string> {
+    if (!existsSync(legacyDataDir)) mkdirSync(legacyDataDir);
+    if (!existsSync(legacyUidsPath)) {
+      writeFileSync(
+        legacyUidsPath,
+        JSON.stringify({ "000000000": "Trailblazer" }, null, 2),
+        "utf-8",
+      );
+      writeFileSync(
+        join(legacyDataDir, "000000000.json"),
+        JSON.stringify({}, null, 2),
+        "utf-8",
+      );
+    }
+    return JSON.parse(readFileSync(legacyUidsPath, "utf-8"));
+  },
+
+  async saveUids(uids: Record<string, string>): Promise<void> {
+    const sorted = Object.keys(uids)
+      .sort()
+      .reduce<Record<string, string>>((acc, key) => {
+        acc[key] = uids[key];
+        return acc;
+      }, {});
+    const tmp = join(dirname(legacyUidsPath), ".uids.tmp");
+    await writeFile(tmp, JSON.stringify(sorted, null, 2), "utf-8");
+    await rename(tmp, legacyUidsPath);
+  },
+
+  async readUidData(uid: string): Promise<Record<string, unknown>> {
+    const raw = await readFile(join(legacyDataDir, `${uid}.json`), "utf-8");
+    return JSON.parse(raw);
+  },
+
+  async writeUidData(
+    uid: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const filePath = join(legacyDataDir, `${uid}.json`);
+    const tmpPath = join(legacyDataDir, `.${uid}.tmp`);
+    await writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+    await rename(tmpPath, filePath);
+  },
+};
 
 export const achievementService = new AchievementService();

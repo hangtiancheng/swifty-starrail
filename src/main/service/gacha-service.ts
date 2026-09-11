@@ -2,15 +2,17 @@ import { app, BrowserWindow, dialog } from "electron";
 import { join, dirname } from "path";
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
-  writeFileSync,
   readdirSync,
   statSync,
-  mkdirSync,
+  writeFileSync,
 } from "fs";
-import { readFile, writeFile, rename } from "fs/promises";
+import { readFile, rename, writeFile } from "fs/promises";
 import { configService } from "./config-service";
 import { settingService } from "./setting-service";
+import { dataStore } from "./store";
+import type { GachaRecord } from "./data-store";
 import type { IpcResult } from "../../shared/ipc-schema";
 
 const serverConfigs: Record<
@@ -34,39 +36,14 @@ const serverConfigs: Record<
 };
 
 class GachaService {
-  private dataPath: string;
-  private uidsPath: string;
-  private uids: Record<string, string>;
+  private readonly dataDir: string;
 
   constructor() {
-    this.dataPath = join(configService.getAppDataPath(), "gacha");
-    if (!existsSync(this.dataPath)) mkdirSync(this.dataPath);
-    this.uidsPath = join(this.dataPath, "uids.json");
-    if (!existsSync(this.uidsPath)) {
-      writeFileSync(
-        this.uidsPath,
-        JSON.stringify({ "000000000": "Trailblazer" }, null, 2),
-        "utf-8",
-      );
-      writeFileSync(
-        join(this.dataPath, "000000000.json"),
-        JSON.stringify({}, null, 2),
-        "utf-8",
-      );
+    this.dataDir = join(configService.getAppDataPath(), "gacha");
+    dataStore.migrateLegacyJson("gacha", this.dataDir);
+    if (dataStore.countUids("gacha") === 0) {
+      dataStore.upsertUid("gacha", "000000000", "Trailblazer");
     }
-    this.uids = JSON.parse(readFileSync(this.uidsPath, "utf-8"));
-  }
-
-  private async saveUids(): Promise<void> {
-    this.uids = Object.keys(this.uids)
-      .sort()
-      .reduce<Record<string, string>>((acc, key) => {
-        acc[key] = this.uids[key];
-        return acc;
-      }, {});
-    const tmp = join(dirname(this.uidsPath), ".uids.tmp");
-    await writeFile(tmp, JSON.stringify(this.uids, null, 2), "utf-8");
-    await rename(tmp, this.uidsPath);
   }
 
   private async loadStaticJson(name: string): Promise<unknown> {
@@ -117,7 +94,7 @@ class GachaService {
   }
 
   async getUids(): Promise<IpcResult<Record<string, string>>> {
-    return { msg: "OK", data: this.uids };
+    return { msg: "OK", data: dataStore.listUids("gacha") };
   }
 
   async getData(
@@ -125,33 +102,24 @@ class GachaService {
     changeLastUid = false,
   ): Promise<IpcResult<Record<string, unknown>>> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
+    if (!dataStore.hasUid("gacha", uid)) return { msg: "UID does not exist" };
     if (changeLastUid) await settingService.set("LastGachaUid", uid);
-    const raw = await readFile(join(this.dataPath, `${uid}.json`), "utf-8");
-    return { msg: "OK", data: JSON.parse(raw) };
+    return { msg: "OK", data: dataStore.getGachaRecords(uid) };
   }
 
   async newData(uid: string, nickname: string): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) {
-      await writeFile(
-        join(this.dataPath, `${uid}.json`),
-        JSON.stringify({}, null, 2),
-        "utf-8",
-      );
-    }
-    this.uids[uid] = nickname;
-    await this.saveUids();
+    dataStore.upsertUid("gacha", uid, nickname);
     return { msg: "OK", data: undefined };
   }
 
   async delData(uid: string): Promise<IpcResult> {
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-    if (!this.uids[uid]) return { msg: "UID does not exist" };
-    if (Object.keys(this.uids).length === 1)
+    if (!dataStore.hasUid("gacha", uid)) return { msg: "UID does not exist" };
+    if (dataStore.countUids("gacha") === 1) {
       return { msg: "Cannot delete the last UID" };
-    delete this.uids[uid];
-    await this.saveUids();
+    }
+    dataStore.deleteUid("gacha", uid);
     return { msg: "OK", data: undefined };
   }
 
@@ -175,9 +143,45 @@ class GachaService {
     >;
     const TextMapCHS = textMap as Record<string, string>;
 
+    const buildExportNode = (item: GachaRecord): Record<string, unknown> => {
+      const node = { ...item, count: "1" } as Record<string, unknown>;
+      if (item.item_id.length === 4) {
+        node.item_type = "角色";
+        node.name =
+          TextMapCHS[
+            (
+              AvatarConfig[item.item_id]?.["AvatarName"] as Record<
+                string,
+                string
+              >
+            )?.["Hash"]
+          ];
+        node.rank_type = (AvatarConfig[item.item_id]?.["Rarity"] as string)?.at(
+          -1,
+        );
+      } else {
+        node.item_type = "光锥";
+        node.name =
+          TextMapCHS[
+            (
+              EquipmentConfig[item.item_id]?.["EquipmentName"] as Record<
+                string,
+                string
+              >
+            )?.["Hash"]
+          ];
+        node.rank_type = (
+          EquipmentConfig[item.item_id]?.["Rarity"] as string
+        )?.at(-1);
+      }
+      return node;
+    };
+
     if (type === "srgf_v1.0" && !Array.isArray(uid)) {
       if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
-      if (!this.uids[uid]) return { msg: "UID does not exist" };
+      if (!dataStore.hasUid("gacha", uid)) {
+        return { msg: "UID does not exist" };
+      }
 
       const exportData = {
         info: {
@@ -189,45 +193,10 @@ class GachaService {
           export_app_version: app.getVersion(),
           export_timestamp: Math.floor(Date.now() / 1000),
         },
-        list: [] as Record<string, unknown>[],
+        list: Object.values(dataStore.getGachaRecords(uid)).map(
+          buildExportNode,
+        ),
       };
-
-      const raw = JSON.parse(
-        await readFile(join(this.dataPath, `${uid}.json`), "utf-8"),
-      );
-      for (const item of Object.values(raw) as Record<string, string>[]) {
-        const node = { ...item, count: "1" } as Record<string, unknown>;
-        if (item.item_id.length === 4) {
-          node.item_type = "角色";
-          node.name =
-            TextMapCHS[
-              (
-                AvatarConfig[item.item_id]?.["AvatarName"] as Record<
-                  string,
-                  string
-                >
-              )?.["Hash"]
-            ];
-          node.rank_type = (
-            AvatarConfig[item.item_id]?.["Rarity"] as string
-          )?.at(-1);
-        } else {
-          node.item_type = "光锥";
-          node.name =
-            TextMapCHS[
-              (
-                EquipmentConfig[item.item_id]?.["EquipmentName"] as Record<
-                  string,
-                  string
-                >
-              )?.["Hash"]
-            ];
-          node.rank_type = (
-            EquipmentConfig[item.item_id]?.["Rarity"] as string
-          )?.at(-1);
-        }
-        exportData.list.push(node);
-      }
 
       const result = await dialog.showSaveDialog(
         BrowserWindow.getAllWindows()[0],
@@ -236,7 +205,7 @@ class GachaService {
           buttonLabel: "Export",
           defaultPath: join(
             app.getPath("desktop"),
-            `swifty-starrail-gacha-export-v${app.getVersion()}-${this.uids[uid]}-${uid}.SRGF.json`,
+            `swifty-starrail-gacha-export-v${app.getVersion()}-${dataStore.listUids("gacha")[uid]}-${uid}.SRGF.json`,
           ),
           filters: [{ name: "SRGF json", extensions: ["json"] }],
         },
@@ -252,7 +221,9 @@ class GachaService {
 
     if (type === "uigf_v4.1") {
       const uids =
-        Array.isArray(uid) && uid.length > 0 ? uid : Object.keys(this.uids);
+        Array.isArray(uid) && uid.length > 0
+          ? uid
+          : Object.keys(dataStore.listUids("gacha"));
       const exportData = {
         info: {
           export_app: "swifty-starrail",
@@ -264,48 +235,15 @@ class GachaService {
       };
 
       for (const u of uids) {
+        if (!dataStore.hasUid("gacha", u)) continue;
         const userNode = {
           uid: u,
           lang: "zh-cn",
           timezone: 8,
-          list: [] as Record<string, unknown>[],
+          list: Object.values(dataStore.getGachaRecords(u)).map(
+            buildExportNode,
+          ),
         };
-        const raw = JSON.parse(
-          await readFile(join(this.dataPath, `${u}.json`), "utf-8"),
-        );
-        for (const item of Object.values(raw) as Record<string, string>[]) {
-          const node = { ...item, count: "1" } as Record<string, unknown>;
-          if (item.item_id.length === 4) {
-            node.item_type = "角色";
-            node.name =
-              TextMapCHS[
-                (
-                  AvatarConfig[item.item_id]?.["AvatarName"] as Record<
-                    string,
-                    string
-                  >
-                )?.["Hash"]
-              ];
-            node.rank_type = (
-              AvatarConfig[item.item_id]?.["Rarity"] as string
-            )?.at(-1);
-          } else {
-            node.item_type = "光锥";
-            node.name =
-              TextMapCHS[
-                (
-                  EquipmentConfig[item.item_id]?.["EquipmentName"] as Record<
-                    string,
-                    string
-                  >
-                )?.["Hash"]
-              ];
-            node.rank_type = (
-              EquipmentConfig[item.item_id]?.["Rarity"] as string
-            )?.at(-1);
-          }
-          userNode.list.push(node);
-        }
         exportData.hkrpg.push(userNode);
       }
 
@@ -400,14 +338,8 @@ class GachaService {
     const uid = `${info.uid}`;
     if (!/^\d{9}$/.test(uid)) return { msg: "Invalid UID" };
 
-    if (!this.uids[uid]) {
-      await writeFile(
-        join(this.dataPath, `${uid}.json`),
-        JSON.stringify({}, null, 2),
-        "utf-8",
-      );
-      this.uids[uid] = "Trailblazer";
-      await this.saveUids();
+    if (!dataStore.hasUid("gacha", uid)) {
+      dataStore.upsertUid("gacha", uid, "Trailblazer");
     }
 
     const regionTz = (info.region_time_zone as number) ?? 8;
@@ -426,25 +358,20 @@ class GachaService {
       }
     }
 
-    let existing = JSON.parse(
-      await readFile(join(this.dataPath, `${uid}.json`), "utf-8"),
-    );
+    const existing = dataStore.getGachaRecords(uid);
     const itemKeys = ["gacha_id", "gacha_type", "item_id", "time", "id"];
+    const newRecords: GachaRecord[] = [];
     for (const item of list) {
       if (!existing[item.id]) {
-        const tmp: Record<string, string> = {};
+        const record = {} as Record<string, string>;
         for (const key of itemKeys) {
           if (!item[key]) return { msg: "Invalid data format" };
-          tmp[key] = item[key];
+          record[key] = item[key];
         }
-        existing[item.id] = tmp;
+        newRecords.push(record as unknown as GachaRecord);
       }
     }
-    existing = Object.fromEntries(Object.entries(existing).sort());
-    const uidFilePath = join(this.dataPath, `${uid}.json`);
-    const tmpPath = join(this.dataPath, `.${uid}.tmp`);
-    await writeFile(tmpPath, JSON.stringify(existing, null, 2), "utf-8");
-    await rename(tmpPath, uidFilePath);
+    dataStore.upsertGachaRecords(uid, newRecords);
     await settingService.set("LastGachaUid", uid);
     return { msg: "OK", data: { uid } };
   }
@@ -501,5 +428,61 @@ class GachaService {
     return { msg: "OK", data: { url: urlObj.href } };
   }
 }
+
+// ---------------------------------------------------------------------
+// @deprecated Legacy JSON storage implementation, kept for reference after
+// the node:sqlite migration (data-store.ts). Do not use in new code; the
+// one-time data import happens via dataStore.migrateLegacyJson().
+// ---------------------------------------------------------------------
+
+const legacyDataDir = join(configService.getAppDataPath(), "gacha");
+const legacyUidsPath = join(legacyDataDir, "uids.json");
+
+/** @deprecated Legacy JSON storage, superseded by node:sqlite. */
+export const legacyGachaJsonStorage = {
+  init(): Record<string, string> {
+    mkdirSync(legacyDataDir, { recursive: true });
+    if (!existsSync(legacyUidsPath)) {
+      writeFileSync(
+        legacyUidsPath,
+        JSON.stringify({ "000000000": "Trailblazer" }, null, 2),
+        "utf-8",
+      );
+      writeFileSync(
+        join(legacyDataDir, "000000000.json"),
+        JSON.stringify({}, null, 2),
+        "utf-8",
+      );
+    }
+    return JSON.parse(readFileSync(legacyUidsPath, "utf-8"));
+  },
+
+  async saveUids(uids: Record<string, string>): Promise<void> {
+    const sorted = Object.keys(uids)
+      .sort()
+      .reduce<Record<string, string>>((acc, key) => {
+        acc[key] = uids[key];
+        return acc;
+      }, {});
+    const tmp = join(dirname(legacyUidsPath), ".uids.tmp");
+    await writeFile(tmp, JSON.stringify(sorted, null, 2), "utf-8");
+    await rename(tmp, legacyUidsPath);
+  },
+
+  async readUidData(uid: string): Promise<Record<string, unknown>> {
+    const raw = await readFile(join(legacyDataDir, `${uid}.json`), "utf-8");
+    return JSON.parse(raw);
+  },
+
+  async writeUidData(
+    uid: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const uidFilePath = join(legacyDataDir, `${uid}.json`);
+    const tmpPath = join(legacyDataDir, `.${uid}.tmp`);
+    await writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+    await rename(tmpPath, uidFilePath);
+  },
+};
 
 export const gachaService = new GachaService();

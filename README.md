@@ -1,197 +1,220 @@
-# swifty-starrail
+# Swifty StarRail
 
-崩坏：星穹铁道桌面工具箱，提供成就管理、跃迁记录分析、帧率解锁等功能。基于 Electron + React + TypeScript 构建，支持 Windows 和 macOS 平台。
+A modern desktop toolbox for **Honkai: Star Rail** — track achievements, analyze your warp history, and unlock the frame rate, all from one clean interface.
 
-## 功能
+Built with Electron, React, and TypeScript. Runs on **Windows** and **macOS**.
 
-### 成就管理
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-- 按系列分类浏览全部成就，显示每个系列的完成进度和总体完成百分比
-- 支持按名称、描述或成就 ID 搜索
-- 手动标记成就完成状态，支持批量操作
-- 自动识别互斥成就关系，完成其中一个后关联项自动置灰
-- 通过米游社/HoYoLAB 网页登录抓取成就数据，自动同步已完成的成就（支持国服和国际服）
-- 成就数据导入/导出（swifty-starrail 专有格式），方便备份和迁移
-- 多 UID 管理，可在不同账号之间切换
+> [!NOTE]
+> This is an unofficial, community-driven tool. It is not affiliated with, endorsed by, or connected to HoYoverse or miHoYo.
 
-### 跃迁记录
+## Features
 
-- 自动从游戏本地 WebCache 提取抽卡 URL（通过解析 Player.log 定位游戏数据目录，读取 webCaches 中的缓存文件提取 authkey）
-- 支持国服（miHoYo）和国际服（HoYoverse）
-- 两种数据视图：
-  - 卡池视图：按跃迁类型（角色活动跃迁、光锥活动跃迁、群星跃迁、始发跃迁）分组展示，高亮显示 5 星和 4 星物品
-  - 类型视图：按物品聚合统计获取次数，按星级分层展示
-- 导入/导出支持 SRGF v1.0 和 UIGF v4.0/v4.1 标准格式，可与其他工具互通数据
-- 导入时自动处理时区转换（将非 UTC+8 时区的记录统一转为 UTC+8）
-- 多 UID 管理，UIGF 导出支持一次性导出多个 UID 的数据
+### Achievement tracker
 
-### 帧率解锁
+- Browse every achievement grouped by series, with per-series progress and an overall completion percentage.
+- Search by name, description, or achievement ID.
+- Mark achievements complete manually, with batch operations.
+- Automatically detect mutually exclusive achievements — completing one grays out the linked ones.
+- Sync completed achievements straight from your account via a miHoYo / HoYoLAB web login (supports CN and global servers).
+- Import / export achievement data in the swifty-starrail format for backups and migration.
+- Manage multiple UIDs and switch between accounts.
 
-- 一键切换 60/120 FPS（仅 Windows 国服）
-- 通过读写注册表 `HKCU\SOFTWARE\miHoYo\崩坏：星穹铁道` 中的 GraphicsSettings 二进制值实现
-- 自动查找注册表键名，适配不同版本
+### Warp history analyzer
 
-### 应用设置
+- Automatically extracts your warp URL from the game's local `WebCache` (locates the game data directory through `Player.log`, then reads the cache files for the auth key).
+- Supports both CN (miHoYo) and global (HoYoverse) servers.
+- Two views of your data:
+  - **Banner view** — grouped by warp type (Character Event, Light Cone Event, Stellar, and Departure Warps), highlighting 5-star and 4-star items.
+  - **Type view** — aggregated by item, layered by rarity.
+- Import / export using the standard **SRGF v1.0** and **UIGF v4.0 / v4.1** formats for interoperability with other tools.
+- Timezone conversion on import (records from non-UTC+8 timezones are normalized to UTC+8).
+- Multi-UID support, with UIGF exports able to bundle several UIDs at once.
 
-- 关闭行为：退出程序或最小化到系统托盘
-- 启动时自动检查更新
-- 侧边栏折叠/展开
-- 调试模式（启用后显示应用菜单栏，允许通过 Ctrl+Shift+I 打开 DevTools）
+### Frame rate unlock
 
-### 自动更新
+- One-click toggle between **60 / 120 FPS**.
+- Toggles the `GraphicsSettings` binary value under the `HKCU\SOFTWARE\miHoYo\崩坏：星穹铁道` registry key.
 
-- 基于 electron-updater 实现，通过 GitHub Releases 分发
-- 支持检查更新、下载进度展示、取消下载、下载完成后重启安装
-- 手动触发或启动时自动检查
+> [!WARNING]
+> The frame rate unlock is currently available for the **Windows + CN server** combination only.
 
-### 其他
+### Application settings
 
-- 自定义无边框窗口，带有标题栏控制按钮（最小化、最大化、关闭）
-- 系统托盘支持，右键菜单可显示/隐藏窗口或退出
-- 单实例锁定，防止重复打开
-- 路由切换时自动保存和恢复滚动位置
-- 页面切换动画
-- 全局 Toast 通知和确认对话框
+- Close behavior: quit or minimize to the system tray.
+- Optional update check on launch.
+- Collapsible sidebar.
+- Debug mode (shows the menu bar and enables DevTools via `Ctrl+Shift+I`).
 
-## 技术栈
+### Auto-update
 
-| 层级     | 技术                                                            |
-| -------- | --------------------------------------------------------------- |
-| 桌面框架 | Electron 39                                                     |
-| 构建工具 | electron-vite 5 + Vite 7                                        |
-| 前端框架 | React 19 + React DOM 19                                         |
-| 语言     | TypeScript 5.9 (strict)                                         |
-| 路由     | react-router 7 (hash mode)                                      |
-| 状态管理 | Zustand 5                                                       |
-| 样式     | Tailwind CSS 4 (通过 @tailwindcss/vite 集成，lightningcss 压缩) |
-| 数据校验 | Zod 4                                                           |
-| 虚拟列表 | @tanstack/react-virtual 3                                       |
-| 图标     | lucide-react                                                    |
-| 日志     | pino + pino-pretty                                              |
-| 前端埋点 | @swifty.js/sentry                                               |
-| 打包     | electron-builder 26 (NSIS for Windows, DMG/ZIP for macOS)       |
-| 自动更新 | electron-updater 6 (GitHub Releases)                            |
-| 代码规范 | ESLint 9 + Prettier 3 + prettier-plugin-tailwindcss             |
-| 包管理   | pnpm (workspace)                                                |
+- Powered by `electron-updater`, distributed through GitHub Releases.
+- Check for updates, view download progress, cancel a download, and restart to install when done.
+- Triggered manually or automatically at launch.
 
-## 架构
+### Quality-of-life
 
-项目采用 Electron 标准的三进程架构，主进程与渲染进程通过类型安全的 IPC 通信。
+- Custom frameless window with title bar controls (minimize, maximize, close).
+- System tray with show / hide / quit actions.
+- Single-instance lock to prevent duplicate launches.
+- Scroll position preserved across route changes, page transition animations, and global toast / confirm dialogs.
 
-### IPC 通信设计
+## Getting started
 
-`src/shared/ipc-schema.ts` 定义了完整的 IPC 通道类型（`IpcApi`），preload 脚本基于该类型暴露 `window.api.invoke()` 方法，使渲染端调用主进程服务时获得完整的类型推导和参数校验。
+### Prerequisites
 
-### 主进程服务
+- [Node.js](https://nodejs.org/) 22+
+- [pnpm](https://pnpm.io/) 9+
 
-- `ConfigService` - 应用路径管理（userData、appData、settings 文件路径）
-- `SettingService` - 应用设置持久化，基于 Zod schema 校验，原子写入（先写临时文件再 rename）
-- `AchievementService` - 成就数据 CRUD、米游社 API 抓取（通过 BrowserWindow + webRequest 拦截）、导入导出
-- `GachaService` - 跃迁记录管理、游戏缓存 URL 提取、SRGF/UIGF 格式转换
-- `UnlockFpsService` - Windows 注册表读写实现帧率切换
-- `UpdateService` - 自动更新状态机管理
-
-### 渲染端状态管理
-
-使用 Zustand store 管理各功能模块状态：
-
-- `useSettingsStore` - 应用设置
-- `useAchievementStore` - 成就数据与 UID 管理
-- `useGachaStore` - 跃迁数据、角色/光锥配置、物品名称解析
-- `useTextMapStore` - 游戏文本映射（中文翻译表）
-- `useToastStore` / `useAlertStore` - UI 通知
-
-### 静态数据
-
-`src/static/json/` 存放从 [Firefly](https://github.com/Natrium0521/Firefly) 上游仓库同步的游戏数据，包括：
-
-- `AvatarConfig.json` / `AvatarConfigLD.json` - 角色配置（限定角色单独拆分）
-- `EquipmentConfig.json` - 光锥配置
-- `AchievementData.json` / `AchievementSeries.json` / `AchievementVersion.json` - 成就数据、系列、版本映射
-- `MutualExclusiveAchievement.json` - 互斥成就关系
-- `AchievementTextReplaceMap.json` - 成就文本替换映射
-- `GachaPoolInfo.json` / `GachaBasicInfo.json` - 卡池信息
-- `TextMapCHS.json` - 简体中文文本映射
-
-## 目录结构
-
-```
-src/
-  main/                  主进程
-    service/             IPC handler 实现
-      config-service     应用路径管理
-      setting-service    设置持久化 (Zod 校验 + 原子写入)
-      achievement-service 成就数据管理与米游社同步
-      gacha-service      跃迁记录管理与 SRGF/UIGF 导入导出
-      unlock-fps-service 帧率解锁 (Windows 注册表)
-      update-service     自动更新状态机
-    logger.ts            pino 日志
-    index.ts             窗口创建、系统托盘、生命周期管理
-  preload/               preload 脚本，类型安全的 window.api
-  renderer/src/          渲染端
-    components/          通用组件 (title-bar, sidebar, toast, alert-dialog, dropdown, switch, checkbox, progress-bar, uid-dropdown, error-boundary)
-    hooks/               自定义 hooks (useClickOutside)
-    pages/
-      achievement/       成就管理页 (系列列表、成就列表、筛选、搜索)
-      gacha/             跃迁记录页 (卡池视图、类型视图)
-      setting/           设置页 (通用设置、帧率解锁、更新管理)
-    stores/              Zustand store
-    routes/              react-router hash 路由配置
-    assets/              图片资源
-  shared/                主/渲染共享类型
-    ipc-schema.ts        IPC 通道定义与类型
-    gacha.types.ts       SRGF/UIGF 数据结构
-    static-json.types.ts 静态 JSON 类型定义
-  static/json/           游戏静态数据
-scripts/
-  sync.mjs               从 Firefly 上游仓库同步静态数据和游戏图片
-  fix.mjs                修复 Electron 二进制安装问题
-  icon.mjs               图标生成
-  release.mjs            发布脚本
-```
-
-## 开发
+### Install & run
 
 ```bash
+# Install dependencies
 pnpm install
+
+# Start the dev server with hot reload
 pnpm dev
 ```
 
-## 类型检查
+### Type checking
 
 ```bash
 pnpm typecheck
 ```
 
-## 构建
+## Building
 
 ```bash
-# Windows (NSIS 安装包)
+# Windows (NSIS installer)
 pnpm build:win
 
 # macOS (DMG + ZIP)
 pnpm build:mac
 ```
 
-## 同步游戏数据
+## Releasing
 
-从 Firefly 上游仓库拉取最新的游戏静态数据和图片资源：
+Releases are published to GitHub Releases and power the auto-updater.
+
+```bash
+# Dry run — build only, no publish
+node scripts/release.mjs
+
+# Publish for Windows
+node scripts/release.mjs win
+
+# Publish for macOS
+node scripts/release.mjs mac
+```
+
+Publishing requires a GitHub token:
+
+```bash
+export GH_TOKEN=your_github_token
+```
+
+> [!TIP]
+> Copy `.env.example` to `.env` and set `GH_TOKEN` there instead of exporting it each time.
+
+## Syncing game data
+
+Static game data and image assets are pulled from the upstream [Firefly](https://github.com/Natrium0521/Firefly) repository:
 
 ```bash
 node scripts/sync.mjs
 ```
 
-## IPC Channel 列表
+## Project structure
 
-| 分类  | Channel                                                                                                                 |
-| ----- | ----------------------------------------------------------------------------------------------------------------------- |
-| 配置  | config:getAppVersion                                                                                                    |
-| 设置  | setting:getAppSettings, setting:setAppSettings                                                                          |
-| 成就  | achievement:getUids, getData, newData, delData, exportData, importData, setStatus, refreshFromMYS, cancelRefreshFromMYS |
-| 跃迁  | gacha:getUids, getData, newData, delData, exportData, importData, getURL                                                |
-| 帧率  | unlockFps:isUnlocked, unlockFps:toggle                                                                                  |
-| 更新  | update:checkForUpdates, downloadUpdate, getDownloadInfo, cancelDownload, quitAndInstall                                 |
-| 窗口  | window:control                                                                                                          |
-| Shell | shell:showItemInFolder                                                                                                  |
-| 数据  | static:loadJson                                                                                                         |
-| 埋点  | sentry:log                                                                                                              |
+```
+src/
+  main/                    Main process
+    service/               IPC handler implementations
+      config-service       App path management
+      setting-service      Settings persistence (Zod validation + atomic writes)
+      achievement-service  Achievement data + miHoYo/HoYoLAB sync
+      gacha-service        Warp records + SRGF/UIGF import/export
+      unlock-fps-service   Frame rate unlock (Windows registry)
+      update-service       Auto-update state machine
+    logger.ts              pino logger
+    index.ts               Window, tray, and lifecycle management
+  preload/                 Preload script exposing a typed window.api
+  renderer/src/
+    components/            Shared components (title bar, sidebar, toast, dialogs, ...)
+    hooks/                 Custom hooks
+    pages/                 Achievement, gacha, and settings pages
+    stores/                Zustand stores
+    routes/                react-router hash routing
+    assets/                Image resources
+  shared/                  Types shared between main and renderer
+    ipc-schema.ts          IPC channel definitions and types
+    gacha.types.ts         SRGF/UIGF data structures
+    static-json.types.ts   Static JSON type definitions
+  static/json/             Game static data
+scripts/
+  sync.mjs                 Sync static data and images from Firefly
+  fix.mjs                  Fix Electron binary installation issues
+  icon.mjs                 Icon generation
+  release.mjs              Release/publish script
+```
+
+## Architecture
+
+The app follows Electron's standard three-process architecture, with the main and renderer processes talking over type-safe IPC.
+
+### Type-safe IPC
+
+`src/shared/ipc-schema.ts` defines the full IPC channel surface as an `IpcApi` type. The preload script exposes `window.api.invoke()` based on that type, so renderer-side calls to main-process services get full type inference and argument checking.
+
+### Main-process services
+
+- **ConfigService** — application paths (`userData`, `appData`, settings file location).
+- **SettingService** — persistent settings, validated against a Zod schema and written atomically (temp file + rename).
+- **AchievementService** — achievement CRUD, miHoYo API fetching (via `BrowserWindow` + `webRequest` interception), import / export.
+- **GachaService** — warp record management, game cache URL extraction, SRGF / UIGF conversion.
+- **UnlockFpsService** — registry read/write for the frame rate toggle on Windows.
+- **UpdateService** — auto-update state machine.
+
+### Renderer state
+
+Zustand stores manage each feature's state:
+
+- `useSettingsStore` — app settings.
+- `useAchievementStore` — achievement data and UID management.
+- `useGachaStore` — warp data, character / light cone configs, item name resolution.
+- `useTextMapStore` — game text mapping (Chinese translation table).
+- `useToastStore` / `useAlertStore` — UI notifications.
+
+### Static data
+
+`src/static/json/` holds game data synced from [Firefly](https://github.com/Natrium0521/Firefly):
+
+- `AvatarConfig.json` / `AvatarConfigLD.json` — character configs (limited characters split out).
+- `EquipmentConfig.json` — light cone configs.
+- `AchievementData.json` / `AchievementSeries.json` / `AchievementVersion.json` — achievements, series, and version mapping.
+- `MutualExclusiveAchievement.json` — mutually exclusive achievement relationships.
+- `AchievementTextReplaceMap.json` — achievement text replacement map.
+- `GachaPoolInfo.json` / `GachaBasicInfo.json` — warp banner info.
+- `TextMapCHS.json` — Simplified Chinese text mapping.
+
+## Tech stack
+
+| Layer         | Technology                                                           |
+| ------------- | -------------------------------------------------------------------- |
+| Desktop shell | Electron 39                                                          |
+| Build tooling | electron-vite 5 + Vite 7                                             |
+| Frontend      | React 19 + React DOM 19                                              |
+| Language      | TypeScript 5.9 (strict)                                              |
+| Routing       | react-router 7 (hash mode)                                           |
+| State         | Zustand 5                                                            |
+| Styling       | Tailwind CSS 4 (via `@tailwindcss/vite`, minified with lightningcss) |
+| Validation    | Zod 4                                                                |
+| Virtual list  | @tanstack/react-virtual 3                                            |
+| Icons         | lucide-react                                                         |
+| Logging       | pino + pino-pretty                                                   |
+| Telemetry     | @swifty.js/sentry                                                    |
+| Packaging     | electron-builder 26 (NSIS for Windows, DMG/ZIP for macOS)            |
+| Auto-update   | electron-updater 6 (GitHub Releases)                                 |
+| Lint / format | ESLint 9 + Prettier 3 + prettier-plugin-tailwindcss                  |
+| Package mgr   | pnpm (workspace)                                                     |

@@ -22,12 +22,12 @@ export function useAchievementFiltered(
     if (!achievementItems.length || !currentData) return achievementItems;
     const items = achievementItems.map((item) => ({ ...item }));
     for (const item of items) {
-      const userData = currentData[item.achievement_id] as
+      const userData = currentData[item.achievementId] as
         Record<string, unknown> | undefined;
       if (!userData || userData["status"] === 1) {
-        if (meAchievementMap[item.achievement_id]) {
+        if (meAchievementMap[item.achievementId]) {
           let effected = false;
-          for (const meId of meAchievementMap[item.achievement_id]) {
+          for (const meId of meAchievementMap[item.achievementId]) {
             const meData = currentData[meId] as
               Record<string, unknown> | undefined;
             if (meData && meData["status"] === 2) {
@@ -37,26 +37,26 @@ export function useAchievementFiltered(
           }
           if (effected) continue;
         }
-        item.achievement_status = 1;
-        item.achievement_is_disabled = false;
-        item.achievement_finish_date = "";
-        item.achievement_finish_time = "";
+        item.achievementStatus = 1;
+        item.achievementIsDisabled = false;
+        item.achievementFinishDate = "";
+        item.achievementFinishTime = "";
       } else if (userData && userData["status"] === 2) {
-        const relatedIds = meAchievementMap[item.achievement_id] ?? [
-          item.achievement_id,
+        const relatedIds = meAchievementMap[item.achievementId] ?? [
+          item.achievementId,
         ];
         const timeStr = new Date(
           (userData["timestamp"] as number) * 1000,
         ).toLocaleString();
         for (const relItem of items) {
-          if (relatedIds.includes(relItem.achievement_id)) {
-            relItem.achievement_is_disabled = true;
-            relItem.achievement_finish_date = timeStr.split(" ")[0];
-            relItem.achievement_finish_time = timeStr.split(" ")[1];
+          if (relatedIds.includes(relItem.achievementId)) {
+            relItem.achievementIsDisabled = true;
+            relItem.achievementFinishDate = timeStr.split(" ")[0];
+            relItem.achievementFinishTime = timeStr.split(" ")[1];
           }
         }
-        item.achievement_status = 2;
-        item.achievement_is_disabled = false;
+        item.achievementStatus = 2;
+        item.achievementIsDisabled = false;
       }
     }
     return items;
@@ -64,9 +64,9 @@ export function useAchievementFiltered(
 
   const seriesWithProgress = useMemo(() => {
     if (!seriesItems.length || !currentData) return seriesItems;
-    const items = seriesItems.map((s) => ({ ...s, count_finished: 0 }));
+    const items = seriesItems.map((s) => ({ ...s, countFinished: 0 }));
     const seriesMap: Record<number, SeriesItem> = {};
-    for (const s of items) seriesMap[s.series_id] = s;
+    for (const s of items) seriesMap[s.seriesId] = s;
     const counted = new Set<string>();
     for (const id of Object.keys(currentData)) {
       if (counted.has(id)) continue;
@@ -76,8 +76,8 @@ export function useAchievementFiltered(
       counted.add(id);
       const sid = achievementDataMap[id]?.["SeriesID"] as number | undefined;
       if (sid !== undefined && seriesMap[sid]) {
-        seriesMap[sid].count_finished++;
-        seriesMap[0].count_finished++;
+        seriesMap[sid].countFinished++;
+        seriesMap[0].countFinished++;
       }
     }
     return items;
@@ -86,7 +86,7 @@ export function useAchievementFiltered(
   useEffect(() => {
     if (seriesWithProgress.length > 0) {
       const all = seriesWithProgress[0];
-      const info = `${all.count_finished}/${all.count_total} - ${((all.count_finished / all.count_total) * 100).toFixed(2)}%`;
+      const info = `${all.countFinished}/${all.countTotal} - ${((all.countFinished / all.countTotal) * 100).toFixed(2)}%`;
       useAchievementStore.getState().setHeadInfo(info);
     }
   }, [seriesWithProgress]);
@@ -96,42 +96,40 @@ export function useAchievementFiltered(
     if (searchString) {
       items = items.filter(
         (item) =>
-          searchString === item.achievement_id ||
-          `${item.achievement_title}\n${item.achievement_desc_upper}\n${item.achievement_desc_lower}`.includes(
+          searchString === item.achievementId ||
+          `${item.achievementTitle}\n${item.achievementDescUpper}\n${item.achievementDescLower}`.includes(
             searchString,
           ),
       );
     } else {
       items = items.filter(
-        (item) => selectedSeries === 0 || item.series_id === selectedSeries,
+        (item) => selectedSeries === 0 || item.seriesId === selectedSeries,
       );
     }
     if (filter.Version.length > 0) {
       items = items.filter((item) =>
-        filter.Version.includes(item.achievement_version),
+        filter.Version.includes(item.achievementVersion),
       );
     }
     if (filter.ShowComp || filter.ShowInComp) {
       if (!filter.ShowInComp)
         items = items.filter(
-          (item) =>
-            item.achievement_is_disabled || item.achievement_status === 2,
+          (item) => item.achievementIsDisabled || item.achievementStatus === 2,
         );
       if (!filter.ShowComp)
         items = items.filter(
-          (item) =>
-            !item.achievement_is_disabled && item.achievement_status === 1,
+          (item) => !item.achievementIsDisabled && item.achievementStatus === 1,
         );
     }
     if (filter.ShowHidden || filter.ShowVisible) {
       if (!filter.ShowVisible)
-        items = items.filter((item) => item.achievement_show_type === "Hidden");
+        items = items.filter((item) => item.achievementShowType === "Hidden");
       if (!filter.ShowHidden)
-        items = items.filter((item) => item.achievement_show_type === "");
+        items = items.filter((item) => item.achievementShowType === "");
     }
     if (filter.ShowMeOnly) {
       items = items.filter(
-        (item) => meAchievementMap[item.achievement_id] !== undefined,
+        (item) => meAchievementMap[item.achievementId] !== undefined,
       );
     }
     return items;
@@ -141,18 +139,18 @@ export function useAchievementFiltered(
     const items = [...filteredItemsUnsorted];
     const byPriority = (a: AchievementItem, b: AchievementItem) => {
       const pa =
-        a.series_priority * 10000 +
-        a.achievement_priority +
-        (!a.achievement_is_disabled &&
-        a.achievement_status === 1 &&
+        a.seriesPriority * 10000 +
+        a.achievementPriority +
+        (!a.achievementIsDisabled &&
+        a.achievementStatus === 1 &&
         filter.InCompFirst
           ? 100000
           : 0);
       const pb =
-        b.series_priority * 10000 +
-        b.achievement_priority +
-        (!b.achievement_is_disabled &&
-        b.achievement_status === 1 &&
+        b.seriesPriority * 10000 +
+        b.achievementPriority +
+        (!b.achievementIsDisabled &&
+        b.achievementStatus === 1 &&
         filter.InCompFirst
           ? 100000
           : 0);
@@ -170,8 +168,8 @@ export function useAchievementFiltered(
       items.sort(byPriority);
     } else {
       items.sort((a, b) => {
-        const ia = orderIndex.get(a.achievement_id);
-        const ib = orderIndex.get(b.achievement_id);
+        const ia = orderIndex.get(a.achievementId);
+        const ib = orderIndex.get(b.achievementId);
         if (ia !== undefined && ib !== undefined) return ia - ib;
         if (ia !== undefined) return -1;
         if (ib !== undefined) return 1;
@@ -186,7 +184,7 @@ export function useAchievementFiltered(
   // Track the latest displayed order outside of render so reordering can be
   // applied imperatively without mutating refs during render.
   useEffect(() => {
-    orderRef.current = filteredItems.map((i) => i.achievement_id);
+    orderRef.current = filteredItems.map((i) => i.achievementId);
   }, [filteredItems]);
 
   const triggerResort = useCallback(() => {

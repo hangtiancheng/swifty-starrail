@@ -12,6 +12,8 @@
     "jsx": "react-jsx",
     "outDir": "out/types-web",
     "paths": {
+      "@main/*": ["./src/main/*"],
+      "@preload/*": ["./src/preload/*"],
       "@renderer/*": ["./src/renderer/src/*"]
     }
   }

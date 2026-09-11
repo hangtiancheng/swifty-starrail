@@ -2,20 +2,7 @@ import { useRef, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAchievementStore } from "../../stores";
 import { Check } from "lucide-react";
-
-interface AchievementItem {
-  achievement_id: string;
-  achievement_title: string;
-  achievement_desc_upper: string;
-  achievement_desc_lower: string;
-  achievement_show_type: string;
-  achievement_reward: number;
-  achievement_status: number;
-  achievement_is_disabled: boolean;
-  achievement_finish_date: string;
-  achievement_finish_time: string;
-  achievement_mutual_exclusive_info: string;
-}
+import type { AchievementItem } from "./types";
 
 interface AchievementItemListProps {
   items: AchievementItem[];
@@ -46,9 +33,9 @@ export function AchievementItemList({
   });
 
   const handleToggle = (item: AchievementItem) => {
-    if (item.achievement_is_disabled) return;
-    const newStatus = item.achievement_status === 2 ? 1 : 2;
-    setStatus([item.achievement_id], newStatus);
+    if (item.achievementIsDisabled) return;
+    const newStatus = item.achievementStatus === 2 ? 1 : 2;
+    setStatus([item.achievementId], newStatus);
   };
 
   return (
@@ -61,7 +48,7 @@ export function AchievementItemList({
           const item = items[virtualRow.index];
           return (
             <div
-              key={item.achievement_id}
+              key={item.achievementId}
               className="absolute top-0 left-0 w-full px-1"
               style={{
                 height: `${ITEM_HEIGHT}px`,
@@ -70,21 +57,21 @@ export function AchievementItemList({
             >
               <div
                 className={`flex h-full items-center gap-3 rounded-md px-3 transition-colors ${
-                  item.achievement_is_disabled
+                  item.achievementIsDisabled
                     ? "opacity-50"
                     : "hover:bg-white/50"
                 }`}
               >
                 <button
                   className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border transition-colors ${
-                    item.achievement_status === 2
+                    item.achievementStatus === 2
                       ? "border-purple-500 bg-purple-500"
                       : "border-gray-400 bg-white"
-                  } ${item.achievement_is_disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                  } ${item.achievementIsDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
                   onClick={() => handleToggle(item)}
-                  disabled={item.achievement_is_disabled}
+                  disabled={item.achievementIsDisabled}
                 >
-                  {item.achievement_status === 2 && (
+                  {item.achievementStatus === 2 && (
                     <Check size={12} className="text-white" />
                   )}
                 </button>
@@ -92,41 +79,41 @@ export function AchievementItemList({
                 <div className="flex flex-1 flex-col justify-center overflow-hidden">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium">
-                      {item.achievement_title}
+                      {item.achievementTitle}
                     </span>
-                    {item.achievement_show_type && (
+                    {item.achievementShowType && (
                       <span className="shrink-0 rounded bg-gray-200 px-1 text-xs text-gray-500">
-                        {item.achievement_show_type}
+                        {item.achievementShowType}
                       </span>
                     )}
-                    {meAchievementMap[item.achievement_id] && (
+                    {meAchievementMap[item.achievementId] && (
                       <span
                         className="shrink-0 rounded bg-purple-100 px-1 text-xs text-purple-600"
-                        title={item.achievement_mutual_exclusive_info}
+                        title={item.achievementMutualExclusiveInfo}
                       >
                         Exclusive
                       </span>
                     )}
                   </div>
                   <span className="truncate text-xs text-gray-500">
-                    {item.achievement_desc_upper}
+                    {item.achievementDescUpper}
                   </span>
-                  {item.achievement_desc_lower && (
+                  {item.achievementDescLower && (
                     <span className="truncate text-xs text-gray-400">
-                      {item.achievement_desc_lower}
+                      {item.achievementDescLower}
                     </span>
                   )}
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end text-xs text-gray-400">
-                  {item.achievement_finish_date && (
+                  {item.achievementFinishDate && (
                     <>
-                      <span>{item.achievement_finish_date}</span>
-                      <span>{item.achievement_finish_time}</span>
+                      <span>{item.achievementFinishDate}</span>
+                      <span>{item.achievementFinishTime}</span>
                     </>
                   )}
                   <span className="text-purple-500">
-                    {item.achievement_reward} 星琼
+                    {item.achievementReward} 星琼
                   </span>
                 </div>
               </div>
