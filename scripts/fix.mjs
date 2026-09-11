@@ -18,15 +18,17 @@ import {
   rmSync,
   mkdirSync,
 } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, resolve } from "path";
 import { tmpdir, homedir, platform as osPlatform, arch as osArch } from "os";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+/** @type {string} Project root, one level above this script's directory. */
+const rootDir = resolve(__dirname, "..");
 const require = createRequire(import.meta.url);
 
-const electronDir = join(__dirname, "node_modules/electron");
+const electronDir = join(rootDir, "../node_modules/electron");
 const { version } = require(join(electronDir, "package.json"));
 
 const platform = osPlatform();

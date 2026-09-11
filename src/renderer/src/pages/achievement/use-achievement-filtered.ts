@@ -138,8 +138,8 @@ export function useAchievementFiltered(
   }, [processedItems, selectedSeries, searchString, filter, meAchievementMap]);
 
   const filteredItems = useMemo(() => {
-    const items = filteredItemsUnsorted;
-    return [...items].sort((a, b) => {
+    const items = [...filteredItemsUnsorted];
+    const byPriority = (a: AchievementItem, b: AchievementItem) => {
       const pa =
         a.series_priority * 10000 +
         a.achievement_priority +
@@ -157,7 +157,28 @@ export function useAchievementFiltered(
           ? 100000
           : 0);
       return pb - pa;
-    });
+    };
+    // After a status toggle the previous display order is kept so the toggled
+    // item does not jump (e.g. to the bottom when it loses its InCompFirst
+    // bonus). A fresh priority sort only happens once orderRef is cleared by
+    // triggerResort (series switch / search).
+    const orderIndex = new Map(
+      // eslint-disable-next-line react-hooks/refs -- intentional: reading the tracked display order during the memo is the design
+      orderRef.current.map((id, idx) => [id, idx] as const),
+    );
+    if (orderIndex.size === 0) {
+      items.sort(byPriority);
+    } else {
+      items.sort((a, b) => {
+        const ia = orderIndex.get(a.achievement_id);
+        const ib = orderIndex.get(b.achievement_id);
+        if (ia !== undefined && ib !== undefined) return ia - ib;
+        if (ia !== undefined) return -1;
+        if (ib !== undefined) return 1;
+        return byPriority(a, b);
+      });
+    }
+    return items;
     // sortKey is intentionally included to allow consumers to trigger a re-sort
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItemsUnsorted, sortKey, filter.InCompFirst]);

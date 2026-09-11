@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, shell, ipcMain } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
-import icon from "../../resources/react.svg?asset";
+import icon from "../../build/favicon.svg?asset";
 import { registerIpcHandlers } from "./service";
 import { settingService } from "./service/setting-service";
 

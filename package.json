@@ -25,7 +25,8 @@
     "release:win": "node scripts/release.mjs win",
     "release:mac": "node scripts/release.mjs mac",
     "git:commit": "git add -A && git commit -m \"feat: Introduce new features\"",
-    "git:push": "pnpm git:commit && git push origin main"
+    "git:push": "pnpm git:commit && git push origin main",
+    "pwa": "pnpm dlx @vite-pwa/assets-generator --preset minimal build/favicon.svg"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -50,6 +51,7 @@
     "@types/node": "^22.19.19",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
+    "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^39.8.10",
     "electron-builder": "^26.8.1",
@@ -64,11 +66,11 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sass": "^1.100.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3",
     "vite": "^7.3.5"
   },
   "optionalDependencies": {
-    "png-to-ico": "^3.0.1",
-    "sharp": "^0.34.5"
+    "png-to-ico": "^3.0.1"
   }
 }
