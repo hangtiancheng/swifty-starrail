@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useGachaStore } from "../../stores";
 import { UidDropdown } from "../../components/uid-dropdown";
-import { toast } from "../../stores/toast-store";
+import { toast } from "../../stores/toast";
 import { useClickOutside } from "../../hooks/use-click-outside";
 
 interface GachaHeadProps {

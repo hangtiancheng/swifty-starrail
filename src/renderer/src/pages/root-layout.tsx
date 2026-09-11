@@ -4,7 +4,7 @@ import { TitleBar } from "../components/title-bar";
 import { Sidebar } from "../components/sidebar";
 import { ToastContainer } from "../components/toast";
 import { AlertDialog } from "../components/alert-dialog";
-import { toast } from "../stores/toast-store";
+import { toast } from "../stores/toast";
 import {
   useTextMapStore,
   useSettingsStore,

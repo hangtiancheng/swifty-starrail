@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dropdown } from "./dropdown";
 import { Plus, Trash2 } from "lucide-react";
-import { alert } from "../stores/alert-store";
+import { alert } from "../stores/alert";
 
 interface UidDropdownProps {
   uids: Record<string, string>;

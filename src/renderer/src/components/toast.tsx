@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import {
   useToastStore,
   type ToastItem as ToastItemType,
-} from "../stores/toast-store";
+} from "../stores/toast";
 
 function ToastItem({ item }: { item: ToastItemType }) {
   const remove = useToastStore((s) => s.remove);

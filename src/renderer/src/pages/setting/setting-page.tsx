@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useSettingsStore } from "../../stores/settings-store";
+import { useSettingsStore } from "../../stores/settings";
 import { Switch } from "../../components/switch";
-import { toast } from "../../stores/toast-store";
+import { toast } from "../../stores/toast";
 import { ProgressBar } from "../../components/progress-bar";
 import { ExternalLink, RefreshCw } from "lucide-react";
 

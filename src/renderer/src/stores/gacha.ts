@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { useTextMapStore } from "./text-map-store";
+import { useTextMapStore } from "./text-map";
 
 type AvatarConfig = Record<string, Record<string, unknown>>;
 type EquipmentConfig = Record<string, Record<string, unknown>>;

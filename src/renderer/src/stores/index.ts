@@ -1,6 +1,6 @@
-export { useTextMapStore } from "./text-map-store";
-export { useSettingsStore } from "./settings-store";
-export { useAchievementStore } from "./achievement-store";
-export { useGachaStore } from "./gacha-store";
-export { useToastStore, toast } from "./toast-store";
-export { useAlertStore, alert } from "./alert-store";
+export { useTextMapStore } from "./text-map";
+export { useSettingsStore } from "./settings";
+export { useAchievementStore } from "./achievement";
+export { useGachaStore } from "./gacha";
+export { useToastStore, toast } from "./toast";
+export { useAlertStore, alert } from "./alert";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTextMapStore } from "../../stores/text-map-store";
+import { useTextMapStore } from "../../stores/text-map";
 import type { AchievementItem, SeriesItem } from "./types";
 
 export function useAchievementMeta() {

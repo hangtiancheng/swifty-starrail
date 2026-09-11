@@ -1,6 +1,6 @@
 import { NavLink } from "react-router";
 import { Menu, Trophy, Ticket, Settings } from "lucide-react";
-import { useSettingsStore } from "../stores/settings-store";
+import { useSettingsStore } from "../stores/settings";
 
 const navItems = [
   { to: "/achievement", label: "成就管理", icon: Trophy },

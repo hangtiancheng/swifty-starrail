@@ -14,7 +14,7 @@ import {
 
 init({
   dsn: import.meta.env.DEV ? "/dev/sentry" : "ipc",
-  beforePushEventList(eventList) {
+  beforeSendBatch(eventList) {
     if (!import.meta.env.DEV) {
       window.api.send("sentry:log", eventList);
       return false;
@@ -23,9 +23,11 @@ init({
   },
 });
 
-enablePlugin(new ScreenRecordPlugin());
-enablePlugin(new ExposurePlugin());
-enablePlugin(new PerformancePlugin());
+enablePlugin(
+  new ScreenRecordPlugin(),
+  new ExposurePlugin(),
+  new PerformancePlugin(),
+);
 
 createRoot(document.getElementById("root")!).render(
   <ReactErrorBoundary fallback={ErrorFallback}>

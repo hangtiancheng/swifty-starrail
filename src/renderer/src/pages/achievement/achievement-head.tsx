@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useAchievementStore } from "../../stores";
 import type { FilterSetting } from "./achievement-page";
-import { toast } from "../../stores/toast-store";
+import { toast } from "../../stores/toast";
 import { useClickOutside } from "../../hooks/use-click-outside";
 
 interface AchievementHeadProps {
