@@ -1,16 +1,16 @@
 {
   "name": "swifty-starrail",
   "version": "0.0.1",
-  "description": "星穹铁道工具箱",
+  "description": "star rail toolbox",
   "main": "./out/main/index.js",
-  "author": "hangtiancheng",
+  "author": "https://github.com/hangtiancheng",
   "homepage": "https://github.com/hangtiancheng/swifty-starrail",
   "repository": {
     "type": "git",
     "url": "https://github.com/hangtiancheng/swifty-starrail"
   },
   "scripts": {
-    "format": "prettier --write .",
+    "format": "prettier -w . --experimental-cli",
     "lint": "eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
