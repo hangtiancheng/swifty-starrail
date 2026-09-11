@@ -1,7 +1,15 @@
-import { app, BrowserWindow, Tray, Menu, shell, ipcMain } from "electron";
+import {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  nativeImage,
+  shell,
+  ipcMain,
+} from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
-import icon from "../../build/favicon.svg?asset";
+import icon from "../../build/pwa-512x512.png?asset";
 import { registerIpcHandlers } from "./service";
 import { settingService } from "./service/setting-service";
 
@@ -73,7 +81,10 @@ function createMainWindow(): void {
 function createTray(): void {
   if (tray) return;
 
-  tray = new Tray(icon);
+  // 512px is far too large for a macOS menu bar; scale it down to tray size
+  tray = new Tray(
+    nativeImage.createFromPath(icon).resize({ width: 16, height: 16 }),
+  );
   tray.setToolTip("Star Rail Toolbox");
   tray.on("click", () => {
     if (!mainWindow) return;

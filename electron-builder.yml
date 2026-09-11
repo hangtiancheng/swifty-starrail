@@ -23,7 +23,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   differentialPackage: false
 mac:
-  icon: build/icon.icns
+  icon: build/pwa-512x512.png
   entitlementsInherit: build/entitlements.mac.plist
   notarize: false
   target:
